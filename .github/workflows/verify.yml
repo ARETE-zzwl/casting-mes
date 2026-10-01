@@ -1,0 +1,86 @@
+name: Verify
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - run: chmod +x mvnw && ./mvnw -B verify
+        working-directory: backend
+      - shell: pwsh
+        run: ./scripts/audit-backend.ps1
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm audit --registry=https://registry.npmjs.org
+  postgresql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.11
+        env:
+          POSTGRES_DB: mes_ci
+          POSTGRES_USER: mes_ci
+          POSTGRES_PASSWORD: isolated-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mes_ci -d mes_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      MES_DATABASE_URL: jdbc:postgresql://localhost:5432/mes_ci
+      MES_DATABASE_USERNAME: mes_ci
+      MES_DATABASE_PASSWORD: isolated-ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - run: chmod +x mvnw
+        working-directory: backend
+      - run: ./mvnw -B -Dspring.profiles.active=postgresql -Dtest=MesBackendApplicationTests,PilotFlowApiTests,InventorySearchApiTests,InventoryExportReliabilityApiTests,OutsourcingProductionFlowApiTests,MultiProductOrderEngineeringApiTests,FullOrderDeliverySimulationTests test
+        working-directory: backend
+  backup-recovery:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - run: ./mvnw.cmd -B dependency:go-offline
+        working-directory: backend
+      - shell: pwsh
+        run: |
+          $h2 = Get-ChildItem "$env:USERPROFILE/.m2/repository/com/h2database/h2" -Filter 'h2-*.jar' -Recurse | Sort-Object FullName -Descending | Select-Object -First 1
+          ./scripts/test-backup.ps1 -Java "$env:JAVA_HOME/bin/java.exe" -H2Jar $h2.FullName
