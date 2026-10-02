@@ -37,7 +37,7 @@ class CompleteProductionSimulationApiTests {
 		reviewAndRelease(orderId);
 
 		String injection = task(orderId, "WAX_INJECTION");
-		String moldAssetId = create("/api/resources", "{\"assetCode\":\"MARGIN-MOLD-" + suffix + "\",\"assetName\":\"Margin Mold\",\"assetType\":\"MOLD\",\"locationCode\":\"MOLD-01\"}");
+		String moldAssetId = create("/api/resources", "{\"assetCode\":\"MARGIN-MOLD-" + suffix + "\",\"assetName\":\"Margin Mold\",\"assetType\":\"MOLD\"}");
 		String dispatch = "{\"moldAssetId\":\"" + moldAssetId + "\",\"warehouseCode\":\"MOLD-01\",\"warehouseOperatorCode\":\"M001\",\"workerCode\":\"W001\",\"reportingMode\":\"SELF_REPORTED_QUANTITY\",\"settlementUnit\":\"PCS\",\"compensationMode\":\"PIECE_PCS\",\"supervisorCode\":\"S001\"}";
 		launchBatchForTask(injection, "13");
 		mvc.perform(post("/api/tasks/{id}/wax-dispatch", injection).contentType(MediaType.APPLICATION_JSON).content(dispatch))
@@ -76,7 +76,7 @@ class CompleteProductionSimulationApiTests {
 		List<String> injections = tasks(orderId, "WAX_INJECTION");
 		String firstInjection = injections.getFirst();
 		String secondInjection = injections.get(1);
-		String moldAssetId = create("/api/resources", "{\"assetCode\":\"BATCH-MOLD-ASSET-" + suffix + "\",\"assetName\":\"Batch Mold\",\"assetType\":\"MOLD\",\"locationCode\":\"MOLD-01\"}");
+		String moldAssetId = create("/api/resources", "{\"assetCode\":\"BATCH-MOLD-ASSET-" + suffix + "\",\"assetName\":\"Batch Mold\",\"assetType\":\"MOLD\"}");
 		String dispatch = "{\"moldAssetId\":\"" + moldAssetId + "\",\"warehouseCode\":\"MOLD-01\",\"warehouseOperatorCode\":\"M001\",\"workerCode\":\"W001\",\"reportingMode\":\"SELF_REPORTED_QUANTITY\",\"settlementUnit\":\"PCS\",\"compensationMode\":\"PIECE_PCS\",\"supervisorCode\":\"S001\"}";
 
 		launchBatchForTask(firstInjection, "6");
@@ -106,7 +106,7 @@ class CompleteProductionSimulationApiTests {
 		reviewAndRelease(orderId);
 
 		String injection = task(orderId, "WAX_INJECTION");
-		String moldAssetId = create("/api/resources", "{\"assetCode\":\"LEAD-MOLD-" + suffix + "\",\"assetName\":\"Leading Batch Mold\",\"assetType\":\"MOLD\",\"locationCode\":\"MOLD-01\"}");
+		String moldAssetId = create("/api/resources", "{\"assetCode\":\"LEAD-MOLD-" + suffix + "\",\"assetName\":\"Leading Batch Mold\",\"assetType\":\"MOLD\"}");
 		String dispatch = "{\"moldAssetId\":\"" + moldAssetId + "\",\"warehouseCode\":\"MOLD-01\",\"warehouseOperatorCode\":\"M001\",\"workerCode\":\"W001\",\"reportingMode\":\"SELF_REPORTED_QUANTITY\",\"settlementUnit\":\"PCS\",\"compensationMode\":\"PIECE_PCS\",\"supervisorCode\":\"S001\"}";
 		launchBatchForTask(injection, "12");
 		mvc.perform(post("/api/tasks/{id}/wax-dispatch", injection).contentType(MediaType.APPLICATION_JSON).content(dispatch))
@@ -174,7 +174,7 @@ class CompleteProductionSimulationApiTests {
 		mvc.perform(post("/api/tasks/{id}/assignment", injection).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"workerCode\":\"W001\",\"supervisorCode\":\"S001\"}"))
 			.andExpect(status().isConflict()).andExpect(jsonPath("$.error.code").value("MOLD_NOT_ISSUED"));
-		String moldAssetId = create("/api/resources", "{\"assetCode\":\"SIM-MOLD-" + suffix + "\",\"assetName\":\"Simulation Mold\",\"assetType\":\"MOLD\",\"locationCode\":\"MOLD-01\"}");
+		String moldAssetId = create("/api/resources", "{\"assetCode\":\"SIM-MOLD-" + suffix + "\",\"assetName\":\"Simulation Mold\",\"assetType\":\"MOLD\"}");
 		mvc.perform(post("/api/tasks/{id}/wax-dispatch", injection).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"moldAssetId\":\"" + moldAssetId + "\",\"warehouseCode\":\"MOLD-01\",\"warehouseOperatorCode\":\"M001\",\"workerCode\":\"W001\",\"reportingMode\":\"SELF_REPORTED_QUANTITY\",\"settlementUnit\":\"PCS\",\"compensationMode\":\"PIECE_PCS\",\"supervisorCode\":\"S001\"}"))
 			.andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ASSIGNED"));

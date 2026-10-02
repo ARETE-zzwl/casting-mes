@@ -49,7 +49,7 @@ class DocumentPrintApiTests {
 		String injectionTaskId = injectionTasks.getFirst();
 
 		String moldAssetId = postAndReadId("/api/resources", """
-			{"assetCode":"DOC-MOLD-%s","assetName":"Document Test Mold","assetType":"MOLD","locationCode":"MOLD-01"}
+			{"assetCode":"DOC-MOLD-%s","assetName":"Document Test Mold","assetType":"MOLD"}
 			""".formatted(suffix));
 		mvc.perform(post("/api/tasks/{taskId}/wax-dispatch", injectionTaskId)
 				.contentType(MediaType.APPLICATION_JSON).content("""

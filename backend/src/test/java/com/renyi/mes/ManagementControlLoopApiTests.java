@@ -497,7 +497,7 @@ class ManagementControlLoopApiTests {
 		String operationCode = JsonPath.read(body, "$[0].operationCode");
 		String operationName = JsonPath.read(body, "$[0].operationName");
 		String moldAssetId = postAndRead("/api/resources", """
-			{"assetCode":"MC-MOLD-%s","assetName":"Management test mold","assetType":"MOLD","locationCode":"MOLD-01"}
+			{"assetCode":"MC-MOLD-%s","assetName":"Management test mold","assetType":"MOLD"}
 			""".formatted(suffix), "$.id");
 		mvc.perform(post("/api/tasks/{id}/wax-dispatch", taskId)
 				.contentType(MediaType.APPLICATION_JSON)

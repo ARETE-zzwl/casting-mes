@@ -648,8 +648,10 @@ public class MonthlyProductionSimulationApplication {
 		UUID moldId;
 		if (selectedMolds.isEmpty()) {
 			String suffix = task.id().toString().substring(0, 8).toUpperCase(Locale.ROOT);
+			String location = "SIM-LOC-" + suffix;
+			molds.createStorageLocation(new MoldApplication.CreateStorageLocationCommand(location, "仿真模具库位 " + suffix, 1, "M001"));
 			moldId = resources.register(new ResourceApplication.RegisterCommand(
-				"SIM-MOLD-" + suffix, "月度仿真订单专属模具 " + task.workOrderNo(), "MOLD", "MOLD-01", null,
+				"SIM-MOLD-" + suffix, "月度仿真订单专属模具 " + task.workOrderNo(), "MOLD", location, null,
 				"COMPANY_OWNED", null)).id();
 		} else {
 			moldId = selectedMolds.getFirst();

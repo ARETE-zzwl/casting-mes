@@ -68,7 +68,7 @@ class PilotFlowApiTests {
 		String taskId = JsonPath.read(taskList.getResponse().getContentAsString(), "$[0].id");
 
 		String moldAssetId = postAndReadId("/api/resources", """
-			{"assetCode":"PILOT-MOLD-%s","assetName":"Pilot mold","assetType":"MOLD","locationCode":"MOLD-01"}
+			{"assetCode":"PILOT-MOLD-%s","assetName":"Pilot mold","assetType":"MOLD"}
 			""".formatted(suffix));
 		mvc.perform(post("/api/tasks/{taskId}/wax-dispatch", taskId)
 				.contentType(MediaType.APPLICATION_JSON)

@@ -43,7 +43,6 @@ class PlatformOperationsApiTests {
 			  "assetCode":"MOLD-%s",
 			  "assetName":"叶轮模具",
 			  "assetType":"MOLD",
-			  "locationCode":"A-01",
 			  "lifeLimit":1
 			}
 			""".formatted(suffix))

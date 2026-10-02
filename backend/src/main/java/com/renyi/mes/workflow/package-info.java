@@ -1,2 +1,2 @@
-@org.springframework.modulith.ApplicationModule(displayName = "Workflow")
+@org.springframework.modulith.ApplicationModule(displayName = "Workflow", allowedDependencies = {"common"})
 package com.renyi.mes.workflow;

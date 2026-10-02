@@ -22,7 +22,8 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:full-delivery-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH")
+// Isolate the fixture context without overriding the selected database profile.
+@SpringBootTest(properties = "spring.application.name=full-delivery-test")
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class FullOrderDeliverySimulationTests {
@@ -81,7 +82,7 @@ class FullOrderDeliverySimulationTests {
 			tasksResult.getResponse().getContentAsString(), "$");
 		tasks.sort(Comparator.comparingInt(task -> (Integer) task.get("sequenceNo")));
 		String moldAssetId = postAndRead("/api/resources", """
-			{"assetCode":"FD-MOLD-%s","assetName":"Full delivery mold","assetType":"MOLD","locationCode":"MOLD-01"}
+			{"assetCode":"FD-MOLD-%s","assetName":"Full delivery mold","assetType":"MOLD"}
 			""".formatted(suffix), "$.id");
 
 		for (Map<String, Object> task : tasks) {

@@ -25,7 +25,7 @@ class MoldFlowApiTests {
 	@Test
 	void requiresEngineeringApprovalBeforeWarehouseIssuesAndReturnsAMold() throws Exception {
 		String assetId = postAndRead("/api/resources", """
-			{"assetCode":"MOLD-%s","assetName":"泵体蜡模","assetType":"MOLD","locationCode":"MOLD_WH"}
+			{"assetCode":"MOLD-%s","assetName":"泵体蜡模","assetType":"MOLD"}
 			""".formatted(shortId()), "$.id");
 		String requestId = postAndRead("/api/factory/mold-requests", """
 			{"moldAssetId":"%s","productCode":"PUMP-01","requestedBy":"S001"}

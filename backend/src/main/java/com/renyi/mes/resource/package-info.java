@@ -1,2 +1,2 @@
-@org.springframework.modulith.ApplicationModule(displayName = "Resource")
+@org.springframework.modulith.ApplicationModule(displayName = "Resource", allowedDependencies = {"common"})
 package com.renyi.mes.resource;

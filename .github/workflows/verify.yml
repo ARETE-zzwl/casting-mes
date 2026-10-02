@@ -72,7 +72,13 @@ jobs:
           cache-dependency-path: backend/pom.xml
       - run: chmod +x mvnw
         working-directory: backend
-      - run: ./mvnw -B -Dspring.profiles.active=postgresql -Dtest=MesBackendApplicationTests,PilotFlowApiTests,InventorySearchApiTests,InventoryExportReliabilityApiTests,OutsourcingProductionFlowApiTests,MultiProductOrderEngineeringApiTests,FullOrderDeliverySimulationTests test
+      - run: |
+          set -euo pipefail
+          ./mvnw -B -Dspring.profiles.active=postgresql -Dtest=MesBackendApplicationTests,PilotFlowApiTests,InventorySearchApiTests,InventoryExportReliabilityApiTests,OutsourcingProductionFlowApiTests,MultiProductOrderEngineeringApiTests,FullOrderDeliverySimulationTests,MoldLocationConcurrencyTests,AssetQrApiTests test | tee "$RUNNER_TEMP/mes-postgresql-tests.log"
+          if grep -q 'jdbc:h2:' "$RUNNER_TEMP/mes-postgresql-tests.log"; then
+            echo 'PostgreSQL verification unexpectedly used H2'
+            exit 1
+          fi
         working-directory: backend
   backup-recovery:
     runs-on: windows-latest

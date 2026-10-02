@@ -15,6 +15,7 @@ import com.renyi.mes.common.BusinessAccess;
 import com.renyi.mes.common.PageResult;
 import com.renyi.mes.common.ProductionTaskPort;
 import com.renyi.mes.common.ProductionTaskPort.TaskSnapshot;
+import com.renyi.mes.resource.internal.MoldStorageLocations;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -42,11 +43,13 @@ public class ResourceApplication {
 	private final JdbcTemplate jdbc;
 	private final ProductionTaskPort tasks;
 	private final BusinessAccess access;
+	private final MoldStorageLocations moldLocations;
 
-	public ResourceApplication(JdbcTemplate jdbc, ProductionTaskPort tasks, BusinessAccess access) {
+	public ResourceApplication(JdbcTemplate jdbc, ProductionTaskPort tasks, BusinessAccess access, MoldStorageLocations moldLocations) {
 		this.jdbc = jdbc;
 		this.tasks = tasks;
 		this.access = access;
+		this.moldLocations = moldLocations;
 	}
 
 	@Transactional
@@ -67,6 +70,8 @@ public class ResourceApplication {
 		if ("CUSTOMER_OWNED".equals(ownershipType) && ownerName == null) {
 			throw DomainException.badRequest("RESOURCE_OWNER_REQUIRED", "客户寄存模具必须填写客户名称");
 		}
+		String location = blankToNull(command.locationCode());
+		if ("MOLD".equals(type) && location != null) location = moldLocations.requireAvailable(location);
 		UUID id = UUID.randomUUID();
 		Instant now = Instant.now();
 		try {
@@ -76,7 +81,7 @@ public class ResourceApplication {
 					life_limit, life_used, version, created_at, updated_at
 				) values (?, ?, ?, ?, ?, ?, 'AVAILABLE', ?, ?, 0, 0, ?, ?)
 				""", id, normalize(command.assetCode()), command.assetName().trim(), type,
-				ownershipType, ownerName, blankToNull(command.locationCode()), command.lifeLimit(),
+				ownershipType, ownerName, location, command.lifeLimit(),
 				Timestamp.from(now), Timestamp.from(now));
 		}
 		catch (DuplicateKeyException exception) {

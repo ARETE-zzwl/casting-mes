@@ -71,8 +71,8 @@ public class AssetQrApplication {
 	public LabelView issueForAsset(UUID assetId, PrintCommand command) {
 		Asset asset = requireAsset(assetId, true);
 		String type = assetType(asset.assetType());
-		LabelView label = jdbc.query(select() + " where q.asset_id = ? for update", AssetQrApplication::map, assetId)
-			.stream().findFirst().orElseGet(() -> createBoundLabel(asset, type, command.actorCode()));
+		LabelView label = jdbc.queryForList("select id from asset_qr_label where asset_id = ?", UUID.class, assetId)
+			.stream().findFirst().map(id -> require(id, true)).orElseGet(() -> createBoundLabel(asset, type, command.actorCode()));
 		return recordPrint(label.id(), command.actorCode());
 	}
 
@@ -85,17 +85,19 @@ public class AssetQrApplication {
 	@Transactional
 	public LabelView bind(BindCommand command) {
 		String scanned = scannedLabelValue(command.scannedValue());
-		LabelView label = jdbc.query(select() + " where upper(q.qr_token) = ? or upper(q.label_no) = ? for update", AssetQrApplication::map, scanned, scanned)
-			.stream().findFirst().orElseThrow(() -> DomainException.notFound("ASSET_QR_NOT_FOUND", "未找到该资产二维码"));
+		// Use the same asset-then-label lock order as issueForAsset.
 		Asset asset = requireAsset(command.assetId(), true);
 		if ("MOLD".equals(asset.assetType())) access.requirePermission("MOLD_RECEIVE", "MOLD_WAREHOUSE_MANAGE");
+		LabelView label = jdbc.queryForList("select id from asset_qr_label where upper(qr_token) = ? or upper(label_no) = ?",
+			UUID.class, scanned, scanned).stream().findFirst().map(id -> require(id, true))
+			.orElseThrow(() -> DomainException.notFound("ASSET_QR_NOT_FOUND", "未找到该资产二维码"));
 		if (!label.intendedAssetType().equals(asset.assetType())) {
 			throw DomainException.conflict("ASSET_QR_TYPE_MISMATCH", "二维码类型与待绑定资产类型不一致");
 		}
 		if (label.assetId() != null && !label.assetId().equals(asset.id())) {
 			throw DomainException.conflict("ASSET_QR_ALREADY_BOUND", "二维码已绑定到其他资产，遗失时请执行补打而非重新绑定");
 		}
-		LabelView existing = jdbc.query(select() + " where q.asset_id = ? for update", AssetQrApplication::map, asset.id())
+		LabelView existing = jdbc.query(select() + " where q.asset_id = ?", AssetQrApplication::map, asset.id())
 			.stream().findFirst().orElse(null);
 		if (existing != null && !existing.id().equals(label.id())) {
 			throw DomainException.conflict("ASSET_QR_ASSET_ALREADY_BOUND", "该资产已有二维码，请对原二维码执行补打");
@@ -169,7 +171,9 @@ public class AssetQrApplication {
 	}
 
 	private LabelView require(UUID id, boolean lock) {
-		return jdbc.query(select() + " where q.id = ?" + (lock ? " for update" : ""), AssetQrApplication::map, id).stream().findFirst()
+		// PostgreSQL cannot lock the nullable side of the display query's outer join.
+		if (lock) jdbc.queryForList("select id from asset_qr_label where id = ? for update", UUID.class, id);
+		return jdbc.query(select() + " where q.id = ?", AssetQrApplication::map, id).stream().findFirst()
 			.orElseThrow(() -> DomainException.notFound("ASSET_QR_NOT_FOUND", "资产二维码不存在"));
 	}
 

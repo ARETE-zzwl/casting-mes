@@ -12,6 +12,7 @@ import java.util.UUID;
 import com.renyi.mes.common.DomainException;
 import com.renyi.mes.common.MoldTaskPort;
 import com.renyi.mes.common.MoldTaskPort.MoldRequestSnapshot;
+import com.renyi.mes.resource.internal.MoldStorageLocations;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -37,15 +38,16 @@ public class MoldApplication implements MoldTaskPort {
 	private final AssetQrApplication labels;
 	private final ProductMoldCatalogApplication productMolds;
 	private final com.renyi.mes.common.BusinessAccess access;
-	private final Object moldLocationLock = new Object();
+	private final MoldStorageLocations moldLocations;
 
 	public MoldApplication(JdbcTemplate jdbc, ResourceApplication resources, AssetQrApplication labels,
-			ProductMoldCatalogApplication productMolds, com.renyi.mes.common.BusinessAccess access) {
+			ProductMoldCatalogApplication productMolds, com.renyi.mes.common.BusinessAccess access, MoldStorageLocations moldLocations) {
 		this.jdbc = jdbc;
 		this.resources = resources;
 		this.labels = labels;
 		this.productMolds = productMolds;
 		this.access = access;
+		this.moldLocations = moldLocations;
 	}
 
 	@Transactional
@@ -252,12 +254,9 @@ public class MoldApplication implements MoldTaskPort {
 		String assetCode = command.assetCode() == null || command.assetCode().isBlank()
 			? "MOLD-" + LocalDate.now().toString().replace("-", "") + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.ROOT)
 			: normalize(command.assetCode());
-		ResourceApplication.AssetView asset;
-		synchronized (moldLocationLock) {
-			asset = resources.register(new ResourceApplication.RegisterCommand(
-				assetCode, command.assetName(), "MOLD", resolvedLocation(command.locationCode()), command.lifeLimit(),
-				command.ownershipType(), command.ownerName()));
-		}
+		ResourceApplication.AssetView asset = resources.register(new ResourceApplication.RegisterCommand(
+			assetCode, command.assetName(), "MOLD", moldLocations.allocate(command.locationCode()), command.lifeLimit(),
+			command.ownershipType(), command.ownerName()));
 		if (command.scannedValue() != null && !command.scannedValue().isBlank()) {
 			labels.bind(new AssetQrApplication.BindCommand(command.scannedValue(), asset.id(), command.operatorCode()));
 		}
@@ -310,7 +309,8 @@ public class MoldApplication implements MoldTaskPort {
 	@Transactional
 	public StorageLocationView updateStorageLocation(String locationCode, UpdateStorageLocationCommand command) {
 		String code = normalize(locationCode);
-		int occupied = locationOccupancy(code);
+		moldLocations.lock(code);
+		int occupied = moldLocations.occupancy(code);
 		if (command.capacity() < occupied) throw DomainException.conflict("MOLD_LOCATION_CAPACITY_TOO_SMALL", "库位容量不能小于当前已占用数量");
 		if (!command.active() && occupied > 0) throw DomainException.conflict("MOLD_LOCATION_IN_USE", "库位仍有在库模具，不能停用");
 		Instant now = Instant.now();
@@ -605,28 +605,6 @@ public class MoldApplication implements MoldTaskPort {
 	}
 
 	private static String trim(String value) { return value == null || value.isBlank() ? null : value.trim(); }
-	private String resolvedLocation(String requestedLocation) {
-		if (requestedLocation != null && !requestedLocation.isBlank()) {
-			String location = normalize(requestedLocation);
-			StorageLocationView configured = storageLocation(location);
-			if (!configured.active()) throw DomainException.conflict("MOLD_LOCATION_INACTIVE", "所选模具库位已停用");
-			if (locationOccupied(location)) throw DomainException.conflict("MOLD_LOCATION_OCCUPIED", "所选模具库位已被占用，请选择其他空库位");
-			return location;
-		}
-		return locationSuggestions().stream().filter(location -> location.occupiedCount() < location.capacity()).findFirst()
-			.map(LocationSuggestion::locationCode).orElseThrow(() -> DomainException.conflict("MOLD_LOCATION_FULL", "模具库暂无空库位，请由仓管释放或新增库位后再入库"));
-	}
-
-	private boolean locationOccupied(String location) {
-		StorageLocationView configured = storageLocation(location);
-		return configured.occupiedCount() >= configured.capacity();
-	}
-
-	private int locationOccupancy(String location) {
-		Integer count = jdbc.queryForObject("select count(*) from resource_asset where asset_type = 'MOLD' and location_code = ?", Integer.class, location);
-		return count == null ? 0 : count;
-	}
-
 	private StorageLocationView storageLocation(String locationCode) {
 		return storageLocations().stream().filter(location -> location.locationCode().equals(locationCode)).findFirst()
 			.orElseThrow(() -> DomainException.notFound("MOLD_LOCATION_NOT_FOUND", "模具库位不存在"));

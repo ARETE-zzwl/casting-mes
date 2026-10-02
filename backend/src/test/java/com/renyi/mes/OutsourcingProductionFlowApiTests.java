@@ -18,7 +18,8 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:outsourcing-production-flow;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH")
+// Isolate the fixture context without overriding the selected database profile.
+@SpringBootTest(properties = "spring.application.name=outsourcing-production-test")
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class OutsourcingProductionFlowApiTests {

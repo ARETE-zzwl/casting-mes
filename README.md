@@ -36,6 +36,8 @@ Linux/macOS 使用 `./mvnw spring-boot:run`。前端：http://127.0.0.1:5174 ，
 
 ## 架构
 
+详细的运行视图、25 个模块责任、依赖规则、事务与安全边界见 [系统架构](docs/ARCHITECTURE.md)。本轮并发和 PostgreSQL 修复记录见 [2026-10-02 审查](docs/QUALITY_REVIEW_2026-10-02.md)。
+
 ```text
 React / TypeScript / Vite
         | 同源代理 /api /uploads

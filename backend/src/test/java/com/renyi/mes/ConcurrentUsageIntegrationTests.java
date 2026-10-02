@@ -249,7 +249,7 @@ class ConcurrentUsageIntegrationTests {
 			.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
 		List<String> waxTasks = JsonPath.read(taskBody, "$[?(@.operationCode == 'WAX_INJECTION')].id");
 		String moldAssetId = postAndRead("/api/resources", """
-			{"assetCode":"CP-MOLD-%s","assetName":"Concurrent Mold","assetType":"MOLD","locationCode":"MOLD-01"}
+			{"assetCode":"CP-MOLD-%s","assetName":"Concurrent Mold","assetType":"MOLD"}
 			""".formatted(shortId()), "$.id");
 		waxMoldByTask.put(waxTasks.getFirst(), moldAssetId);
 		MvcResult taskResult = mvc.perform(get("/api/tasks").param("orderId", orderId))

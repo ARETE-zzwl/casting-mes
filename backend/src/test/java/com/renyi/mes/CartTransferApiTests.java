@@ -38,7 +38,7 @@ class CartTransferApiTests {
 		OrderReviewTestSupport.releaseAndLaunchAfterRequiredReviews(mvc, orderId);
 
 		String injection = task(orderId, "WAX_INJECTION");
-		String moldId = create("/api/resources", "{\"assetCode\":\"CART-MOLD-" + suffix + "\",\"assetName\":\"Cart test mold\",\"assetType\":\"MOLD\",\"locationCode\":\"MOLD-01\"}");
+		String moldId = create("/api/resources", "{\"assetCode\":\"CART-MOLD-" + suffix + "\",\"assetName\":\"Cart test mold\",\"assetType\":\"MOLD\"}");
 		mvc.perform(post("/api/tasks/{id}/wax-dispatch", injection).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"moldAssetId\":\"" + moldId + "\",\"warehouseCode\":\"MOLD-01\",\"warehouseOperatorCode\":\"M001\",\"workerCode\":\"W001\",\"reportingMode\":\"SELF_REPORTED_QUANTITY\",\"settlementUnit\":\"PCS\",\"compensationMode\":\"PIECE_PCS\",\"supervisorCode\":\"S001\"}"))
 			.andExpect(status().isOk());

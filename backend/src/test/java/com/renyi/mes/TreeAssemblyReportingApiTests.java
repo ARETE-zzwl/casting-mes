@@ -87,7 +87,7 @@ class TreeAssemblyReportingApiTests {
 
 	private void assignWaxAndReport(String taskId, String suffix, int good, int scrap) throws Exception {
 		String moldAssetId = postAndReadId("/api/resources", """
-			{"assetCode":"TREE-MOLD-%s","assetName":"Tree test mold","assetType":"MOLD","locationCode":"MOLD-01"}
+			{"assetCode":"TREE-MOLD-%s","assetName":"Tree test mold","assetType":"MOLD"}
 			""".formatted(suffix));
 		mvc.perform(post("/api/tasks/{id}/wax-dispatch", taskId).contentType(MediaType.APPLICATION_JSON)
 				.content("""

@@ -35,7 +35,7 @@ class FieldReliabilityApiTests {
 
 		String suffix = UUID.randomUUID().toString().substring(0, 8);
 		String moldId = create("/api/resources", """
-			{"assetCode":"LIFE-%s","assetName":"Lifecycle mold","assetType":"MOLD","locationCode":"MOLD-A","lifeLimit":100}
+			{"assetCode":"LIFE-%s","assetName":"Lifecycle mold","assetType":"MOLD","lifeLimit":100}
 			""".formatted(suffix));
 		mvc.perform(post("/api/molds/{id}/configuration", moldId).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"maintenanceIntervalDays\":30}"))
