@@ -34,44 +34,46 @@ import {
 import { NavLink, Navigate, Route as RouterRoute, Routes, useLocation } from "react-router-dom";
 import { api, ApiError, type AuthSession } from "./api";
 import { ErrorNotice, LoadingState } from "./components/ui";
+import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import { useAsyncData } from "./hooks";
-import { AccessControlPage } from "./pages/AccessControlPage";
-import { AdministrationPage } from "./pages/AdministrationPage";
-import { AssetQrBindingPage } from "./pages/AssetQrBindingPage";
-import { AssetQrManagementPage } from "./pages/AssetQrManagementPage";
-import { DocumentCenterPage } from "./pages/DocumentCenterPage";
-import { FulfillmentPage } from "./pages/FulfillmentPage";
-import { InventoryPage } from "./pages/InventoryPage";
-import { MasterDataPage } from "./pages/MasterDataPage";
-import { MoldRequestsPage } from "./pages/MoldRequestsPage";
-import { OrderMoldSelectionPage } from "./pages/OrderMoldSelectionPage";
-import { OrdersPage } from "./pages/OrdersPage";
-import { OutsourcingPage } from "./pages/OutsourcingPage";
-import { PieceworkManagementPage } from "./pages/PieceworkManagementPage";
-import { PlatformPage } from "./pages/PlatformPage";
-import { ProcessGuidePage } from "./pages/ProcessGuidePage";
-import { QualityPage } from "./pages/QualityPage";
-import { SopManagementPage } from "./pages/SopManagementPage";
-import { SchedulingPage } from "./pages/SchedulingPage";
-import { ScanPage } from "./pages/ScanPage";
-import { CartTransfersPage } from "./pages/CartTransfersPage";
-import { CustomerDirectoryPage } from "./pages/CustomerDirectoryPage";
-import { CustomerProductMoldRelationsPage } from "./pages/CustomerProductMoldRelationsPage";
-import { FurnaceBatchesPage } from "./pages/FurnaceBatchesPage";
-import { HandoffExceptionsPage } from "./pages/HandoffExceptionsPage";
-import { ProcessCardTemplatesPage } from "./pages/ProcessCardTemplatesPage";
-import { TasksPage } from "./pages/TasksPage";
-import { PaperReportsPage } from "./pages/PaperReportsPage";
-import { TracePage } from "./pages/TracePage";
-import { WorkOrdersPage } from "./pages/WorkOrdersPage";
-import { RoleWorkspacePage } from "./pages/RoleWorkspacePage";
-import { WorkerWorkbenchPage } from "./pages/WorkerWorkbenchPage";
-import { ProductionAlertsPage } from "./pages/ProductionAlertsPage";
-import { ReportLedgerPage } from "./pages/ReportLedgerPage";
-import { NotificationCenterPage } from "./pages/NotificationCenterPage";
 import { ChangePasswordPage, LoginPage } from "./pages/LoginPage";
 import { roleWorkspaceFor } from "./pages/roleWorkspace";
 import type { AccessUser } from "./types";
+
+const AccessControlPage = lazy(() => import("./pages/AccessControlPage").then((module) => ({ default: module.AccessControlPage })));
+const AdministrationPage = lazy(() => import("./pages/AdministrationPage").then((module) => ({ default: module.AdministrationPage })));
+const AssetQrBindingPage = lazy(() => import("./pages/AssetQrBindingPage").then((module) => ({ default: module.AssetQrBindingPage })));
+const AssetQrManagementPage = lazy(() => import("./pages/AssetQrManagementPage").then((module) => ({ default: module.AssetQrManagementPage })));
+const DocumentCenterPage = lazy(() => import("./pages/DocumentCenterPage").then((module) => ({ default: module.DocumentCenterPage })));
+const FulfillmentPage = lazy(() => import("./pages/FulfillmentPage").then((module) => ({ default: module.FulfillmentPage })));
+const InventoryPage = lazy(() => import("./pages/InventoryPage").then((module) => ({ default: module.InventoryPage })));
+const MasterDataPage = lazy(() => import("./pages/MasterDataPage").then((module) => ({ default: module.MasterDataPage })));
+const MoldRequestsPage = lazy(() => import("./pages/MoldRequestsPage").then((module) => ({ default: module.MoldRequestsPage })));
+const OrderMoldSelectionPage = lazy(() => import("./pages/OrderMoldSelectionPage").then((module) => ({ default: module.OrderMoldSelectionPage })));
+const OrdersPage = lazy(() => import("./pages/OrdersPage").then((module) => ({ default: module.OrdersPage })));
+const OutsourcingPage = lazy(() => import("./pages/OutsourcingPage").then((module) => ({ default: module.OutsourcingPage })));
+const PieceworkManagementPage = lazy(() => import("./pages/PieceworkManagementPage").then((module) => ({ default: module.PieceworkManagementPage })));
+const PlatformPage = lazy(() => import("./pages/PlatformPage").then((module) => ({ default: module.PlatformPage })));
+const ProcessGuidePage = lazy(() => import("./pages/ProcessGuidePage").then((module) => ({ default: module.ProcessGuidePage })));
+const QualityPage = lazy(() => import("./pages/QualityPage").then((module) => ({ default: module.QualityPage })));
+const SopManagementPage = lazy(() => import("./pages/SopManagementPage").then((module) => ({ default: module.SopManagementPage })));
+const SchedulingPage = lazy(() => import("./pages/SchedulingPage").then((module) => ({ default: module.SchedulingPage })));
+const ScanPage = lazy(() => import("./pages/ScanPage").then((module) => ({ default: module.ScanPage })));
+const CartTransfersPage = lazy(() => import("./pages/CartTransfersPage").then((module) => ({ default: module.CartTransfersPage })));
+const CustomerDirectoryPage = lazy(() => import("./pages/CustomerDirectoryPage").then((module) => ({ default: module.CustomerDirectoryPage })));
+const CustomerProductMoldRelationsPage = lazy(() => import("./pages/CustomerProductMoldRelationsPage").then((module) => ({ default: module.CustomerProductMoldRelationsPage })));
+const FurnaceBatchesPage = lazy(() => import("./pages/FurnaceBatchesPage").then((module) => ({ default: module.FurnaceBatchesPage })));
+const HandoffExceptionsPage = lazy(() => import("./pages/HandoffExceptionsPage").then((module) => ({ default: module.HandoffExceptionsPage })));
+const ProcessCardTemplatesPage = lazy(() => import("./pages/ProcessCardTemplatesPage").then((module) => ({ default: module.ProcessCardTemplatesPage })));
+const TasksPage = lazy(() => import("./pages/TasksPage").then((module) => ({ default: module.TasksPage })));
+const PaperReportsPage = lazy(() => import("./pages/PaperReportsPage").then((module) => ({ default: module.PaperReportsPage })));
+const TracePage = lazy(() => import("./pages/TracePage").then((module) => ({ default: module.TracePage })));
+const WorkOrdersPage = lazy(() => import("./pages/WorkOrdersPage").then((module) => ({ default: module.WorkOrdersPage })));
+const RoleWorkspacePage = lazy(() => import("./pages/RoleWorkspacePage").then((module) => ({ default: module.RoleWorkspacePage })));
+const WorkerWorkbenchPage = lazy(() => import("./pages/WorkerWorkbenchPage").then((module) => ({ default: module.WorkerWorkbenchPage })));
+const ProductionAlertsPage = lazy(() => import("./pages/ProductionAlertsPage").then((module) => ({ default: module.ProductionAlertsPage })));
+const ReportLedgerPage = lazy(() => import("./pages/ReportLedgerPage").then((module) => ({ default: module.ReportLedgerPage })));
+const NotificationCenterPage = lazy(() => import("./pages/NotificationCenterPage").then((module) => ({ default: module.NotificationCenterPage })));
 
 const DashboardPage = lazy(() =>
   import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage }))
@@ -320,6 +322,7 @@ function Workspace({ authenticatedUser, onLogout, onChangePassword }: { authenti
         </header>
 
         <main>
+          <RouteErrorBoundary key={`${currentUser.employeeCode}:${location.pathname}`}>
           <Suspense fallback={<LoadingState label="正在加载页面" />}>
             <Routes>
               <RouterRoute
@@ -521,6 +524,7 @@ function Workspace({ authenticatedUser, onLogout, onChangePassword }: { authenti
 			  <RouterRoute path="/production-alerts" element={<Guard user={currentUser} permission="NOTIFICATION_VIEW"><ProductionAlertsPage user={currentUser} /></Guard>} />
             </Routes>
           </Suspense>
+          </RouteErrorBoundary>
         </main>
       </div>
       <nav className="mobile-tabbar" aria-label="移动端主导航">

@@ -127,6 +127,15 @@ describe("Casting MES application", () => {
     expect(screen.queryByLabelText("当前模拟用户")).not.toBeInTheDocument();
   });
 
+  it("does not mount a restricted lazy page after a role switch", async () => {
+    render(<MemoryRouter initialEntries={["/orders"]}><App /></MemoryRouter>);
+    expect(await screen.findByText("暂无客户订单")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("当前模拟用户"), { target: { value: "W001" } });
+    expect(await screen.findByRole("heading", { name: "生产流程指南" })).toBeInTheDocument();
+    expect(screen.queryByText("暂无客户订单")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "客户订单" })).not.toBeInTheDocument();
+  });
+
   it("keeps backend error code and field details", async () => {
     vi.stubGlobal(
       "fetch",
