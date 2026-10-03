@@ -151,6 +151,17 @@ class CompleteProductionSimulationApiTests {
 
 		report(injection, "W001", 7, 0);
 		String taskBody = mvc.perform(get("/api/tasks").param("orderId", orderId)).andReturn().getResponse().getContentAsString();
+		String leadingBatchId = JsonPath.read(leadingFlow.getResponse().getContentAsString(), "$.targetBatchId");
+		List<String> leadingTreeTasks = JsonPath.read(taskBody,
+			"$[?(@.batchId == '" + leadingBatchId + "' && @.operationCode == 'TREE_ASSEMBLY')].id");
+		mvc.perform(get("/api/tasks/{id}/reports/upstream", leadingTreeTasks.getFirst()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.sourceTaskId").value(leadingRepair))
+			.andExpect(jsonPath("$.sourceOperationCode").value("WAX_REPAIR"));
+		mvc.perform(get("/api/tasks/{id}/reports/upstream", leadingRepair))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.reports.length()").value(1))
+			.andExpect(jsonPath("$.reports[0].goodQuantity").value(5));
 		List<Number> repairQuantities = JsonPath.read(taskBody, "$[?(@.operationCode == 'WAX_REPAIR')].plannedQuantity");
 		org.junit.jupiter.api.Assertions.assertTrue(repairQuantities.stream().anyMatch(quantity -> quantity.doubleValue() == 5d));
 		org.junit.jupiter.api.Assertions.assertTrue(repairQuantities.stream().anyMatch(quantity -> quantity.doubleValue() == 7d));

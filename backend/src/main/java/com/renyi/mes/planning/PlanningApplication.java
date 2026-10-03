@@ -3,9 +3,12 @@ package com.renyi.mes.planning;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.renyi.mes.common.DomainException;
 import com.renyi.mes.common.OrderReleasePort;
@@ -119,9 +122,33 @@ public class PlanningApplication implements OrderReleasePort, ProductionTaskPort
 
 	@Transactional(readOnly = true)
 	public List<WorkOrderView> workOrdersForOrder(UUID orderId) {
-		return workOrders.findByOrderIdOrderByCreatedAt(orderId).stream()
-			.flatMap(workOrder -> workOrderViews(workOrder).stream()).toList();
+		return productionForOrder(orderId).stream().map(BatchProductionView::workOrder).toList();
 	}
+
+	@Transactional(readOnly = true)
+	public List<BatchProductionView> productionForOrder(UUID orderId) {
+		List<WorkOrderEntity> orderWorkOrders = workOrders.findByOrderIdOrderByCreatedAt(orderId);
+		if (orderWorkOrders.isEmpty()) return List.of();
+		Map<UUID, BigDecimal> quantities = customerOrders.getOrder(orderId).lines().stream()
+			.collect(Collectors.toMap(OrderLineView::id, OrderLineView::orderedQuantity));
+		List<ProductionBatchEntity> orderBatches = batches.findByWorkOrderIdInOrderByCreatedAtAscIdAsc(
+			orderWorkOrders.stream().map(WorkOrderEntity::id).toList());
+		if (orderBatches.isEmpty()) return List.of();
+		Map<UUID, List<ProductionBatchEntity>> batchesByWorkOrder = orderBatches.stream()
+			.collect(Collectors.groupingBy(ProductionBatchEntity::workOrderId));
+		Map<UUID, List<ProductionTaskEntity>> tasksByBatch = tasks.findByBatchIdInOrderByBatchIdAscSequenceNoAsc(
+			orderBatches.stream().map(ProductionBatchEntity::id).toList()).stream()
+			.collect(Collectors.groupingBy(ProductionTaskEntity::batchId));
+		return orderWorkOrders.stream().flatMap(workOrder -> batchesByWorkOrder.getOrDefault(workOrder.id(), List.of()).stream()
+			.map(batch -> {
+				List<ProductionTaskEntity> batchTasks = tasksByBatch.getOrDefault(batch.id(), List.of());
+				return new BatchProductionView(toWorkOrderView(workOrder, batch,
+					quantities.getOrDefault(workOrder.orderLineId(), workOrder.plannedQuantity()), batchTasks),
+					batchTasks.stream().map(task -> toTaskView(task, batch, workOrder)).toList());
+			})).toList();
+	}
+
+	public record BatchProductionView(WorkOrderView workOrder, List<TaskView> tasks) { }
 
 	@Transactional
 	public List<WorkOrderView> configureBatches(UUID workOrderId, List<BigDecimal> quantities, String supervisorCode) {
@@ -332,6 +359,26 @@ public class PlanningApplication implements OrderReleasePort, ProductionTaskPort
 		if (!batches.existsById(batchId)) throw DomainException.notFound("BATCH_NOT_FOUND", "生产批次不存在");
 		return tasks.findByBatchIdOrderBySequenceNo(batchId).stream().map(this::toTaskView).toList();
 	}
+
+	@Transactional(readOnly = true)
+	public Optional<UpstreamTaskView> upstreamTask(UUID taskId) {
+		ProductionTaskEntity receiving = requireTask(taskId);
+		if (receiving.sequenceNo() > 1) {
+			return tasks.findByBatchIdAndSequenceNo(receiving.batchId(), receiving.sequenceNo() - 1)
+				.map(task -> new UpstreamTaskView(task.id(), task.taskNo(), task.operationCode(), task.operationName(), null));
+		}
+		// Only the first task of a split batch inherits its source at the release cutoff.
+		return jdbc.query("""
+			select source.id, source.task_no, source.operation_code, source.operation_name, release.released_at
+			from partial_flow_release release
+			join planning_task source on source.id = release.source_task_id
+			where release.target_batch_id = ?
+			""", (rs, row) -> new UpstreamTaskView(rs.getObject("id", UUID.class), rs.getString("task_no"),
+				rs.getString("operation_code"), rs.getString("operation_name"), rs.getTimestamp("released_at").toInstant()),
+			receiving.batchId()).stream().findFirst();
+	}
+
+	public record UpstreamTaskView(UUID taskId, String taskNo, String operationCode, String operationName, Instant reportedThrough) { }
 
 	@Transactional
 	public TaskView assign(UUID taskId, String workerCode) {
@@ -564,6 +611,11 @@ public class PlanningApplication implements OrderReleasePort, ProductionTaskPort
 			.filter(line -> line.id().equals(workOrder.orderLineId())).findFirst()
 			.map(OrderLineView::orderedQuantity).orElse(workOrder.plannedQuantity());
 		List<ProductionTaskEntity> batchTasks = tasks.findByBatchIdOrderBySequenceNo(batch.id());
+		return toWorkOrderView(workOrder, batch, orderQuantity, batchTasks);
+	}
+
+	private WorkOrderView toWorkOrderView(WorkOrderEntity workOrder, ProductionBatchEntity batch,
+			BigDecimal orderQuantity, List<ProductionTaskEntity> batchTasks) {
 		long taskCount = batchTasks.size();
 		long completedTaskCount = batchTasks.stream().filter(task -> task.status() == TaskStatus.COMPLETED).count();
 		ProductionTaskEntity currentTask = batchTasks.stream()
@@ -611,6 +663,10 @@ public class PlanningApplication implements OrderReleasePort, ProductionTaskPort
 			.orElseThrow(() -> DomainException.notFound("BATCH_NOT_FOUND", "生产批次不存在"));
 		WorkOrderEntity workOrder = workOrders.findById(batch.workOrderId())
 			.orElseThrow(() -> DomainException.notFound("WORK_ORDER_NOT_FOUND", "工单不存在"));
+		return toTaskView(task, batch, workOrder);
+	}
+
+	private TaskView toTaskView(ProductionTaskEntity task, ProductionBatchEntity batch, WorkOrderEntity workOrder) {
 		return new TaskView(
 			task.id(),
 			task.taskNo(),

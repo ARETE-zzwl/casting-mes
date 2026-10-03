@@ -88,6 +88,19 @@ public class ExecutionApplication {
 			.toList();
 	}
 
+	/** Internal batch read; callers supply task IDs from their authorized production view. */
+	@Transactional(readOnly = true)
+	public List<ReportView> reportsForTasks(List<UUID> taskIds) {
+		List<UUID> uniqueIds = taskIds.stream().distinct().toList();
+		List<ReportView> result = new ArrayList<>();
+		for (int start = 0; start < uniqueIds.size(); start += 500) {
+			result.addAll(reports.findByTaskIdInOrderByOccurredAtAscIdAsc(
+				uniqueIds.subList(start, Math.min(start + 500, uniqueIds.size()))).stream()
+				.map(ExecutionApplication::toView).toList());
+		}
+		return List.copyOf(result);
+	}
+
 	@Transactional(readOnly = true)
 	public List<ReportLedgerView> reportLedger(String viewerCode, String workerCode, UUID orderId,
 			String operationCode, Instant from, Instant to) {
@@ -152,30 +165,11 @@ public class ExecutionApplication {
 	 */
 	@Transactional(readOnly = true)
 	public UpstreamReportsView upstreamReportsForTask(UUID taskId) {
-		PlanningApplication.TaskView receivingTask = planning.getTask(taskId);
-		List<PartialSource> partialSources = jdbc.query("""
-			select source.id, source.task_no, source.operation_code, source.operation_name, release.released_at
-			from partial_flow_release release
-			join planning_task receiving on receiving.batch_id = release.target_batch_id
-			join planning_task source on source.id = release.source_task_id
-			where receiving.id = ?
-			""", (rs, row) -> new PartialSource(
-				rs.getObject("id", UUID.class), rs.getString("task_no"), rs.getString("operation_code"),
-				rs.getString("operation_name"), rs.getTimestamp("released_at").toInstant()), taskId);
-		if (!partialSources.isEmpty()) {
-			PartialSource source = partialSources.getFirst();
-			return new UpstreamReportsView(source.taskId(), source.taskNo(), source.operationCode(), source.operationName(),
-				reports.findByTaskIdAndOccurredAtLessThanEqualOrderByOccurredAt(source.taskId(), source.releasedAt()).stream()
-					.map(ExecutionApplication::toView).toList());
-		}
-		if (receivingTask.sequenceNo() <= 1) {
-			return new UpstreamReportsView(null, null, null, null, List.of());
-		}
-		return planning.tasksForBatch(receivingTask.batchId()).stream()
-			.filter(task -> task.sequenceNo() == receivingTask.sequenceNo() - 1)
-			.findFirst()
-			.map(source -> new UpstreamReportsView(source.id(), source.taskNo(), source.operationCode(), source.operationName(),
-				reports.findByTaskIdOrderByOccurredAt(source.id()).stream().map(ExecutionApplication::toView).toList()))
+		return planning.upstreamTask(taskId)
+			.map(source -> new UpstreamReportsView(source.taskId(), source.taskNo(), source.operationCode(), source.operationName(),
+				(source.reportedThrough() == null ? reports.findByTaskIdOrderByOccurredAt(source.taskId())
+					: reports.findByTaskIdAndOccurredAtLessThanEqualOrderByOccurredAt(source.taskId(), source.reportedThrough()))
+					.stream().map(ExecutionApplication::toView).toList()))
 			.orElseGet(() -> new UpstreamReportsView(null, null, null, null, List.of()));
 	}
 
@@ -376,6 +370,4 @@ public class ExecutionApplication {
 		String workstationCode, String photoUrl, Instant occurredAt, String recordedBy
 	) { }
 
-	private record PartialSource(UUID taskId, String taskNo, String operationCode, String operationName, Instant releasedAt) {
-	}
 }

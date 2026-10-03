@@ -4,7 +4,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.renyi.mes.customerorder.CustomerOrderApplication;
 import com.renyi.mes.execution.ExecutionApplication;
@@ -39,18 +41,15 @@ public class TraceabilityApplication {
 	@Transactional(readOnly = true)
 	public OrderTrace traceOrder(UUID orderId) {
 		CustomerOrderApplication.OrderView order = customerOrders.getOrder(orderId);
-		List<WorkOrderTrace> workOrderTraces = planning.workOrdersForOrder(orderId).stream()
-			.map(this::traceWorkOrder)
-			.toList();
+		List<PlanningApplication.BatchProductionView> production = planning.productionForOrder(orderId);
+		Map<UUID, List<ReportView>> reports = execution.reportsForTasks(production.stream()
+			.flatMap(batch -> batch.tasks().stream()).map(TaskView::id).toList()).stream()
+			.collect(Collectors.groupingBy(ReportView::taskId));
+		List<WorkOrderTrace> workOrderTraces = production.stream().map(batch -> new WorkOrderTrace(
+			batch.workOrder(), batch.tasks().stream()
+				.map(task -> new TaskTrace(task, reports.getOrDefault(task.id(), List.of()))).toList())).toList();
 		List<TimelineEvent> timeline = buildTimeline(order, workOrderTraces);
 		return new OrderTrace(order, workOrderTraces, timeline);
-	}
-
-	private WorkOrderTrace traceWorkOrder(WorkOrderView workOrder) {
-		List<TaskTrace> taskTraces = planning.tasksForBatch(workOrder.batchId()).stream()
-			.map(task -> new TaskTrace(task, execution.reportsForTask(task.id())))
-			.toList();
-		return new WorkOrderTrace(workOrder, taskTraces);
 	}
 
 	private List<TimelineEvent> buildTimeline(

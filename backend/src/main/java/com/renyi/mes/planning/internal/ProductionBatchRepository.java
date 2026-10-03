@@ -10,5 +10,7 @@ public interface ProductionBatchRepository extends JpaRepository<ProductionBatch
 
 	List<ProductionBatchEntity> findByWorkOrderIdOrderByCreatedAt(UUID workOrderId);
 
+	List<ProductionBatchEntity> findByWorkOrderIdInOrderByCreatedAtAscIdAsc(List<UUID> workOrderIds);
+
 	Optional<ProductionBatchEntity> findFirstByBatchNoIgnoreCase(String batchNo);
 }

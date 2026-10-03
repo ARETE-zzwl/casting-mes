@@ -74,7 +74,7 @@ jobs:
         working-directory: backend
       - run: |
           set -euo pipefail
-          ./mvnw -B -Dspring.profiles.active=postgresql -Dtest=MesBackendApplicationTests,PilotFlowApiTests,InventorySearchApiTests,InventoryExportReliabilityApiTests,OutsourcingProductionFlowApiTests,MultiProductOrderEngineeringApiTests,FullOrderDeliverySimulationTests,MoldLocationConcurrencyTests,AssetQrApiTests test | tee "$RUNNER_TEMP/mes-postgresql-tests.log"
+          ./mvnw -B -Dspring.profiles.active=postgresql -Dtest=MesBackendApplicationTests,PilotFlowApiTests,InventorySearchApiTests,InventoryExportReliabilityApiTests,OutsourcingProductionFlowApiTests,MultiProductOrderEngineeringApiTests,FullOrderDeliverySimulationTests,MoldLocationConcurrencyTests,AssetQrApiTests,TraceabilityQueryTests,CompleteProductionSimulationApiTests test | tee "$RUNNER_TEMP/mes-postgresql-tests.log"
           if grep -q 'jdbc:h2:' "$RUNNER_TEMP/mes-postgresql-tests.log"; then
             echo 'PostgreSQL verification unexpectedly used H2'
             exit 1

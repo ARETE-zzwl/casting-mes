@@ -13,5 +13,7 @@ public interface ExecutionReportRepository extends JpaRepository<ExecutionReport
 
 	List<ExecutionReportEntity> findByTaskIdOrderByOccurredAt(UUID taskId);
 
+	List<ExecutionReportEntity> findByTaskIdInOrderByOccurredAtAscIdAsc(List<UUID> taskIds);
+
 	List<ExecutionReportEntity> findByTaskIdAndOccurredAtLessThanEqualOrderByOccurredAt(UUID taskId, Instant occurredAt);
 }

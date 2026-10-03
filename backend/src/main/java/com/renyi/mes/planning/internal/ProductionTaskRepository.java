@@ -17,6 +17,10 @@ public interface ProductionTaskRepository extends JpaRepository<ProductionTaskEn
 
 	List<ProductionTaskEntity> findByBatchIdOrderBySequenceNo(UUID batchId);
 
+	List<ProductionTaskEntity> findByBatchIdInOrderByBatchIdAscSequenceNoAsc(List<UUID> batchIds);
+
+	Optional<ProductionTaskEntity> findByBatchIdAndSequenceNo(UUID batchId, int sequenceNo);
+
 	Optional<ProductionTaskEntity> findFirstByTaskNoIgnoreCase(String taskNo);
 
 	long countByBatchId(UUID batchId);
